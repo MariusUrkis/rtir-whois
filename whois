@@ -1,0 +1,61 @@
+#!/opt/perl5/perls/perl-5.30.0/bin/perl -X -T
+
+use strict;
+use warnings;
+
+
+binmode( STDOUT, ":utf8" );
+
+use LWP::UserAgent;
+use Net::Whois::Raw;
+use Net::Nslookup;
+
+use Data::Validate::IP qw(is_ip);
+use Data::Validate::Domain qw(is_domain);
+use List::MoreUtils qw(uniq);
+
+use HTTP::Headers;
+
+chomp(my $input=<STDIN>);
+
+$input =~ s/^\s+|\s+$//g;
+
+#unless ( is_ip( $input ) || is_domain( $input ) ) {
+unless ( $input ) {
+    printf "# No input for whois search", $input;
+    exit;
+}
+
+# Uncomment if you want DNS lookup results
+#lookup_ns( $input );
+
+lookup_whois( $input );
+
+sub lookup_ns {
+    my $input = shift;
+
+    printf "# NsLookup result for %s\n\n", $input;
+
+    my $output = is_ip( $input ) ? nslookup( host => $input, type => 'PTR' ) : nslookup ( host => $input );
+
+    if ( $output ) {
+        printf "%s\n\n", $output;
+    } else {
+        print "# No information\n\n";
+    }
+}
+
+=begin
+Recursive check for input value in public WHOIS servers
+=end
+=cut
+sub lookup_whois {
+    my $input = shift;
+        if (is_ip($input) || is_domain($input)) {
+                my ($result, $server) = whois( $input, undef, "QRY_LAST" );
+
+                printf "# %s lookup result for %s\n\n", $server, $input;
+                printf "%s\n\n", $result;
+        }
+}
+
